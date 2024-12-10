@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный бюджет</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, button {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 5px 0;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .budget-status {
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+        }
+        .budget-status.safe {
+            background-color: #28a745;
+        }
+        .budget-status.warning {
+            background-color: #ffc107;
+        }
+        .budget-status.danger {
+            background-color: #dc3545;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+        td {
+            padding: 10px;
+        }
+        .total {
+            text-align: right;
+            font-weight: bold;
+            font-size: 18px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Личный бюджет</h1>
+
+        <div class="form-group">
+            <label for="income">Добавить доход:</label>
+            <input type="number" id="income" placeholder="Введите сумму">
+            <button onclick="addIncome()">Добавить доход</button>
+        </div>
+
+        <div class="form-group">
+            <label for="expense">Добавить расход:</label>
+            <input type="number" id="expense" placeholder="Введите сумму">
+            <input type="text" id="expense-description" placeholder="Описание расхода">
+            <button onclick="addExpense()">Добавить расход</button>
+        </div>
+
+        <div id="budgetStatus" class="budget-status safe">Бюджет в хорошем состоянии!</div>
+
+        <div class="total">
+            <p>Общий доход: <span id="totalIncome">0</span> ₸</p>
+            <p>Общие расходы: <span id="totalExpenses">0</span> ₸</p>
+            <p>Остаток: <span id="balance">0</span> ₸</p>
+        </div>
+
+        <h2>История транзакций</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Описание</th>
+                    <th>Сумма</th>
+                    <th>Тип</th>
+                </tr>
+            </thead>
+            <tbody id="transactionTable"></tbody>
+        </table>
+    </div>
+
+    <script>
+        let totalIncome = 0;
+        let totalExpenses = 0;
+        const expenseLimit = 500; // Уведомление, если расходы превышают этот лимит
+        const transactionTable = document.getElementById("transactionTable");
+        const budgetStatus = document.getElementById("budgetStatus");
+        const totalIncomeElement = document.getElementById("totalIncome");
+        const totalExpensesElement = document.getElementById("totalExpenses");
+        const balanceElement = document.getElementById("balance");
+
+        function updateBudgetStatus() {
+            const balance = totalIncome - totalExpenses;
+
+            if (totalExpenses > expenseLimit) {
+                alert("Внимание: Вы превысили лимит расходов!");
+                budgetStatus.className = "budget-status danger";
+                budgetStatus.textContent = "Лимит расходов превышен!";
+            } else if (balance < expenseLimit / 2) {
+                budgetStatus.className = "budget-status warning";
+                budgetStatus.textContent = "Бюджет на исходе.";
+            } else {
+                budgetStatus.className = "budget-status safe";
+                budgetStatus.textContent = "Бюджет в хорошем состоянии!";
+            }
+
+            totalIncomeElement.textContent = totalIncome.toFixed(2);
+            totalExpensesElement.textContent = totalExpenses.toFixed(2);
+            balanceElement.textContent = balance.toFixed(2);
+        }
+
+        function addIncome() {
+            const incomeInput = document.getElementById("income");
+            const incomeValue = parseFloat(incomeInput.value);
+
+            if (isNaN(incomeValue) || incomeValue <= 0) {
+                alert("Введите корректную сумму дохода.");
+                return;
+            }
+
+            totalIncome += incomeValue;
+            addTransaction("Доход", incomeValue, "Доход");
+            incomeInput.value = "";
+            updateBudgetStatus();
+        }
+
+        function addExpense() {
+            const expenseInput = document.getElementById("expense");
+            const descriptionInput = document.getElementById("expense-description");
+            const expenseValue = parseFloat(expenseInput.value);
+            const description = descriptionInput.value.trim();
+
+            if (isNaN(expenseValue) || expenseValue <= 0 || !description) {
+                alert("Введите корректную сумму и описание расхода.");
+                return;
+            }
+
+            totalExpenses += expenseValue;
+            addTransaction(description, expenseValue, "Расход");
+            expenseInput.value = "";
+            descriptionInput.value = "";
+            updateBudgetStatus();
+        }
+
+        function addTransaction(description, amount, type) {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${description}</td>
+                <td>${type === "Расход" ? "-" : ""}${amount.toFixed(2)} ₸</td>
+                <td>${type}</td>
+            `;
+            transactionTable.appendChild(row);
+        }
+    </script>
+</body>
+</html>
